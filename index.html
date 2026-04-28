@@ -46,6 +46,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f2f5;min-height:100vh;c
 .badge-e{background:#f3f4f6;color:#4b5563}
 .card-title{font-size:.85rem;font-weight:600;color:#111827;flex:1}
 .count-badge{font-size:.67rem;background:#f3f4f6;color:#6b7280;border-radius:10px;padding:.1rem .4rem}
+.add-task-btn{margin-left:auto;width:22px;height:22px;border-radius:6px;border:1.5px dashed #d1d5db;background:none;cursor:pointer;font-size:.95rem;color:#9ca3af;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;line-height:1}
+.add-task-btn:hover{border-color:#6366f1;color:#6366f1;background:#eef2ff;border-style:solid}
+.add-input{width:100%;font-size:.82rem;border:1px solid #d1d5db;border-radius:8px;padding:.45rem .6rem;font-family:'Noto Sans KR',sans-serif;transition:border-color .15s;margin-bottom:.5rem}
+.add-input:focus{outline:none;border-color:#a5b4fc}
+.add-card-select{width:100%;font-size:.82rem;border:1px solid #d1d5db;border-radius:8px;padding:.42rem .6rem;font-family:'Noto Sans KR',sans-serif;background:#fff;cursor:pointer;margin-bottom:.5rem;transition:border-color .15s}
+.add-card-select:focus{outline:none;border-color:#a5b4fc}
+.add-row{display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem}
+.add-row label{font-size:.75rem;color:#6b7280;white-space:nowrap;font-weight:500;min-width:52px}
+.add-row input,.add-row select{flex:1;font-size:.82rem;border:1px solid #d1d5db;border-radius:8px;padding:.4rem .55rem;font-family:'Noto Sans KR',sans-serif;background:#fff}
+.add-row input:focus,.add-row select:focus{outline:none;border-color:#a5b4fc}
 .memo-dot{width:7px;height:7px;border-radius:50%;background:#e5e7eb;flex-shrink:0;margin-top:4px;border:1.5px solid #d1d5db;cursor:pointer;transition:all .12s}
 .memo-dot.has-memo{background:#818cf8;border-color:#6366f1}
 .task-list{display:flex;flex-direction:column;gap:.3rem;min-height:36px}
@@ -249,7 +259,36 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f2f5;min-height:100vh;c
   </div>
 </div>
 
-<script>
+<!-- Add Task Modal -->
+<div class="overlay" id="add-overlay" onclick="closeAdd()">
+  <div class="modal-box sm" onclick="event.stopPropagation()" style="width:400px">
+    <div class="modal-top">
+      <div style="font-size:.95rem;font-weight:600;color:#111827">업무 추가</div>
+      <button class="modal-close" onclick="closeAdd()">✕</button>
+    </div>
+    <div class="add-row">
+      <label>업무명</label>
+      <input id="add-text" type="text" placeholder="업무 내용을 입력하세요" onkeydown="if(event.key==='Enter')submitAdd()">
+    </div>
+    <div class="add-row">
+      <label>카드</label>
+      <select id="add-card">
+        <option value="A">A — 중요도 높음 · 긴급</option>
+        <option value="B">B — 중요도 높음 · 긴급 아님</option>
+        <option value="C">C — Daily 업무</option>
+        <option value="D">D — 타부서 요청</option>
+      </select>
+    </div>
+    <div class="add-row">
+      <label>마감일</label>
+      <input id="add-due" type="date">
+    </div>
+    <div class="settings-actions" style="margin-top:.8rem">
+      <button class="s-btn primary" onclick="submitAdd()">추가하기</button>
+      <button class="s-btn" onclick="closeAdd()">취소</button>
+    </div>
+  </div>
+</div>
 const WD=['일','월','화','수','목','금','토'];
 const MONTHS=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 const TODAY=new Date(2026,3,28);
@@ -417,6 +456,7 @@ function renderP1(){
         <span class="badge badge-${ci.cls}">${ci.label}</span>
         <div class="card-title">${ci.title}</div>
         <span class="count-badge">${ct.length}건</span>
+        <button class="add-task-btn" onclick="openAdd('${ck}')" title="업무 추가">+</button>
       </div>
       <div class="task-list">`;
     if(!ct.length)h+=`<div class="drop-hint">드래그하여 이동</div>`;
@@ -738,6 +778,26 @@ function openCalModal(id){
       oninput="pMemo('${t.id}',this.value)">${t.memo||''}</textarea>
   `;
   document.getElementById('modal-overlay').classList.add('open');
+}
+
+/* ══════ Add Task ══════ */
+function openAdd(card){
+  document.getElementById('add-card').value=card||'A';
+  document.getElementById('add-text').value='';
+  document.getElementById('add-due').value='';
+  document.getElementById('add-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('add-text').focus(),80);
+}
+function closeAdd(){document.getElementById('add-overlay').classList.remove('open');}
+function submitAdd(){
+  const text=document.getElementById('add-text').value.trim();
+  if(!text){document.getElementById('add-text').focus();return;}
+  const card=document.getElementById('add-card').value;
+  const due=document.getElementById('add-due').value;
+  const id='t'+Date.now();
+  tasks.push({id,text,due,memo:'',card,prev:card});
+  closeAdd();
+  save();renderP1();if(curPage===2)renderP2();
 }
 
 /* ══════ Init ══════ */
