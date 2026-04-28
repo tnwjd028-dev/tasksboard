@@ -48,6 +48,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f2f5;min-height:100vh;c
 .count-badge{font-size:.67rem;background:#f3f4f6;color:#6b7280;border-radius:10px;padding:.1rem .4rem}
 .add-task-btn{margin-left:auto;width:22px;height:22px;border-radius:6px;border:1.5px dashed #d1d5db;background:none;cursor:pointer;font-size:.95rem;color:#9ca3af;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;line-height:1}
 .add-task-btn:hover{border-color:#6366f1;color:#6366f1;background:#eef2ff;border-style:solid}
+.edit-btn{opacity:0;font-size:.62rem;padding:.11rem .32rem;border-radius:4px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;color:#6b7280;transition:all .12s;flex-shrink:0;margin-top:1px;font-family:'Noto Sans KR',sans-serif;line-height:1.4}
+.task-item:hover .edit-btn,.e-chip:hover .edit-btn{opacity:1}
+.edit-btn:hover{background:#eef2ff;border-color:#a5b4fc;color:#4f46e5}
 .add-input{width:100%;font-size:.82rem;border:1px solid #d1d5db;border-radius:8px;padding:.45rem .6rem;font-family:'Noto Sans KR',sans-serif;transition:border-color .15s;margin-bottom:.5rem}
 .add-input:focus{outline:none;border-color:#a5b4fc}
 .add-card-select{width:100%;font-size:.82rem;border:1px solid #d1d5db;border-radius:8px;padding:.42rem .6rem;font-family:'Noto Sans KR',sans-serif;background:#fff;cursor:pointer;margin-bottom:.5rem;transition:border-color .15s}
@@ -255,6 +258,39 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f2f5;min-height:100vh;c
       <button class="s-btn" onclick="testConnection()">연결 테스트</button>
       <button class="s-btn primary" onclick="saveSettings()">저장 &amp; 동기화</button>
       <button class="s-btn danger" onclick="clearSettings()">연동 해제</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Task Modal -->
+<div class="overlay" id="edit-overlay" onclick="closeEdit()">
+  <div class="modal-box sm" onclick="event.stopPropagation()" style="width:400px">
+    <div class="modal-top">
+      <div style="font-size:.95rem;font-weight:600;color:#111827">업무 수정</div>
+      <button class="modal-close" onclick="closeEdit()">✕</button>
+    </div>
+    <div class="add-row">
+      <label>업무명</label>
+      <input id="edit-text" type="text" placeholder="업무 내용을 입력하세요" onkeydown="if(event.key==='Enter')submitEdit()">
+    </div>
+    <div class="add-row">
+      <label>카드</label>
+      <select id="edit-card">
+        <option value="A">A — 중요도 높음 · 긴급</option>
+        <option value="B">B — 중요도 높음 · 긴급 아님</option>
+        <option value="C">C — Daily 업무</option>
+        <option value="D">D — 타부서 요청</option>
+        <option value="E">E — 완료</option>
+      </select>
+    </div>
+    <div class="add-row">
+      <label>마감일</label>
+      <input id="edit-due" type="date">
+    </div>
+    <div class="settings-actions" style="margin-top:.8rem">
+      <button class="s-btn primary" onclick="submitEdit()">저장</button>
+      <button class="s-btn" onclick="closeEdit()">취소</button>
+      <button class="s-btn danger" onclick="deleteTask()">삭제</button>
     </div>
   </div>
 </div>
@@ -472,6 +508,7 @@ function renderP1(){
           title="${hm?'메모 있음 · 더블클릭으로 확인':'메모 없음 · 더블클릭으로 추가'}"
           onclick="event.stopPropagation();toggleExp('${t.id}')"></span>
         <span class="task-text">${t.text}</span>
+        <button class="edit-btn" onclick="event.stopPropagation();openEdit('${t.id}')" title="수정">수정</button>
         <span class="task-due${urg?' urgent':''}${!t.due?' nodate':''}"
           onclick="event.stopPropagation();openDP('${t.id}',event)">${fmtDue(t.due)}</span>
       </div>`;
@@ -510,6 +547,7 @@ function renderP1(){
       ${hm?`<span class="memo-dot has-memo" title="메모 있음" onclick="event.stopPropagation();openMemoModal('${t.id}')"></span>`:'<span style="width:7px;flex-shrink:0"></span>'}
       <span class="e-badge badge-${pci.cls}">${t.prev||'A'}</span>
       <span class="e-text">${t.text}</span>
+      <button class="edit-btn" onclick="event.stopPropagation();openEdit('${t.id}')" title="수정">수정</button>
     </div>`;
   }
   h+=`</div></div></div>${buildDateView()}`;
@@ -779,6 +817,43 @@ function openCalModal(id){
       oninput="pMemo('${t.id}',this.value)">${t.memo||''}</textarea>
   `;
   document.getElementById('modal-overlay').classList.add('open');
+}
+
+/* ══════ Edit Task ══════ */
+let editId=null;
+function openEdit(id){
+  const t=getT(id);if(!t)return;
+  editId=id;
+  document.getElementById('edit-text').value=t.text;
+  document.getElementById('edit-card').value=t.card;
+  document.getElementById('edit-due').value=t.due||'';
+  document.getElementById('edit-overlay').classList.add('open');
+  setTimeout(()=>{
+    const el=document.getElementById('edit-text');
+    el.focus();el.select();
+  },80);
+}
+function closeEdit(){document.getElementById('edit-overlay').classList.remove('open');editId=null;}
+function submitEdit(){
+  const text=document.getElementById('edit-text').value.trim();
+  if(!text){document.getElementById('edit-text').focus();return;}
+  const t=getT(editId);if(!t)return;
+  const newCard=document.getElementById('edit-card').value;
+  if(t.card!=='E'&&newCard!=='E')t.prev=newCard;
+  else if(newCard==='E')t.prev=t.card;
+  t.text=text;
+  t.card=newCard;
+  t.due=document.getElementById('edit-due').value;
+  if(expandedId===editId)expandedId=null;
+  closeEdit();
+  save();renderP1();if(curPage===2)renderP2();
+}
+function deleteTask(){
+  if(!confirm('이 업무를 삭제하시겠습니까?'))return;
+  tasks=tasks.filter(t=>t.id!==editId);
+  if(expandedId===editId)expandedId=null;
+  closeEdit();
+  save();renderP1();if(curPage===2)renderP2();
 }
 
 /* ══════ Add Task ══════ */
