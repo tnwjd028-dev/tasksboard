@@ -178,6 +178,63 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f2f5;min-height:100vh;c
 ::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:2px}
+
+/* ── Mobile ── */
+@media(max-width:640px){
+  .header{padding:.7rem 1rem}
+  .header-title{font-size:.88rem}
+  .header-date{display:none}
+  .sync-pill span:last-child{display:none}
+  .nav{padding:0 .5rem;top:44px}
+  .nav-btn{padding:.65rem .9rem;font-size:.78rem;flex:1;text-align:center}
+  .content{padding:.9rem 1rem;gap:.8rem}
+  .grid{grid-template-columns:1fr;gap:.8rem}
+  .col-span-2{grid-column:1}
+  .card{padding:.9rem .9rem .85rem}
+  /* edit btn always visible on touch */
+  .edit-btn{opacity:1 !important;font-size:.7rem;padding:.15rem .42rem}
+  .add-task-btn{width:26px;height:26px;font-size:1.05rem}
+  /* task items */
+  .task-item{padding:.52rem .55rem;gap:.45rem}
+  .task-text{font-size:.82rem}
+  .task-due{font-size:.7rem;padding:.14rem .4rem}
+  .memo-dot{width:9px;height:9px;margin-top:3px}
+  /* E chip wraps nicely */
+  .e-chip{padding:.42rem .55rem}
+  .e-text{font-size:.78rem}
+  /* detail panel */
+  .detail-memo{min-height:110px;font-size:.82rem}
+  /* modals — bottom sheet on mobile */
+  .overlay{align-items:flex-end}
+  .modal-box{width:100% !important;max-width:100% !important;border-radius:20px 20px 0 0;padding:1.2rem 1.2rem 2rem;max-height:92vh}
+  .modal-task-title{font-size:.88rem}
+  .modal-memo{min-height:130px;font-size:.82rem}
+  .add-row label{min-width:46px;font-size:.78rem}
+  .add-row input,.add-row select{font-size:.84rem;padding:.45rem .5rem}
+  .settings-actions{flex-wrap:wrap}
+  .s-btn{font-size:.78rem;padding:.48rem .6rem}
+  /* date picker — center on mobile */
+  #dp-popup{left:50% !important;top:50% !important;transform:translate(-50%,-50%);width:240px}
+  /* calendar */
+  .cal-wrap{padding:.9rem .75rem}
+  .cal-cell{height:70px;padding:.22rem .2rem}
+  .cal-ev{font-size:.55rem;padding:.07rem .2rem}
+  .cal-num{font-size:.68rem}
+  .cal-hdr{font-size:.65rem;padding:.25rem 0}
+  .cal-legend{gap:.45rem}
+  .leg-item{font-size:.67rem}
+  /* date view */
+  .date-task-row{padding:.42rem .5rem}
+  .date-task-text{font-size:.78rem}
+  /* settings */
+  .setup-steps{padding:.75rem .85rem}
+  .setup-step{font-size:.74rem}
+  #settings-result{font-size:.73rem}
+}
+@media(max-width:400px){
+  .card-title{font-size:.78rem}
+  .task-text{font-size:.78rem}
+}
 </style>
 </head>
 <body>
@@ -496,16 +553,17 @@ function renderP1(){
         <button class="add-task-btn" onclick="openAdd('${ck}')" title="업무 추가">+</button>
       </div>
       <div class="task-list">`;
-    if(!ct.length)h+=`<div class="drop-hint">드래그하여 이동</div>`;
+    if(!ct.length)h+=`<div class="drop-hint">${isMobile()?'수정 버튼으로 카드 이동':'드래그하여 이동'}</div>`;
     for(const t of ct){
       const exp=expandedId===t.id,urg=isUrgent(t.due),hm=hasMemo(t);
       h+=`<div class="task-item${hm?' has-memo-bg':''}" id="ti-${t.id}" draggable="true"
           ondragstart="dStart(event,'${t.id}')"
-          ondblclick="toggleExp('${t.id}')">
+          ondblclick="toggleExp('${t.id}')"
+          ontouchend="tapExp(event,'${t.id}')">
         <input type="checkbox" class="task-checkbox"
           onclick="event.stopPropagation();toggleDone('${t.id}')">
         <span class="memo-dot${hm?' has-memo':''}"
-          title="${hm?'메모 있음 · 더블클릭으로 확인':'메모 없음 · 더블클릭으로 추가'}"
+          title="${hm?'메모 있음':'메모 없음'}"
           onclick="event.stopPropagation();toggleExp('${t.id}')"></span>
         <span class="task-text">${t.text}</span>
         <button class="edit-btn" onclick="event.stopPropagation();openEdit('${t.id}')" title="수정">수정</button>
@@ -513,8 +571,9 @@ function renderP1(){
           onclick="event.stopPropagation();openDP('${t.id}',event)">${fmtDue(t.due)}</span>
       </div>`;
       if(exp){
+        const closeHint=isMobile()?'다시 메모 점 탭으로 닫기':'더블클릭으로 닫기';
         h+=`<div class="detail-panel" ondragstart="event.stopPropagation()" ondblclick="event.stopPropagation()">
-          <div class="detail-label">상세 메모 &nbsp;·&nbsp; <span style="font-weight:400;color:#9ca3af">더블클릭으로 닫기</span></div>
+          <div class="detail-label">상세 메모 &nbsp;·&nbsp; <span style="font-weight:400;color:#9ca3af">${closeHint}</span></div>
           <textarea class="detail-memo"
             placeholder="상세 내용, 진행 상황, 특이사항 등을 자유롭게 입력하세요..."
             oninput="pMemo('${t.id}',this.value)"
@@ -707,11 +766,17 @@ function openDP(id,e){
   document.getElementById('dp-input').value=getT(id)?.due||'';
   const dp=document.getElementById('dp-popup');
   dp.style.display='block';
-  const r=e.target.getBoundingClientRect();
-  let x=r.left,y=r.bottom+5;
-  if(x+215>window.innerWidth)x=window.innerWidth-220;
-  if(y+140>window.innerHeight)y=r.top-140;
-  dp.style.left=x+'px';dp.style.top=y+'px';
+  if(isMobile()){
+    dp.style.left='';dp.style.top='';dp.style.transform='';
+    /* CSS handles centering on mobile via media query */
+  } else {
+    dp.style.transform='none';
+    const r=e.target.getBoundingClientRect();
+    let x=r.left,y=r.bottom+5;
+    if(x+215>window.innerWidth)x=window.innerWidth-220;
+    if(y+140>window.innerHeight)y=r.top-140;
+    dp.style.left=x+'px';dp.style.top=y+'px';
+  }
 }
 function applyDate(){
   const v=document.getElementById('dp-input').value,t=getT(dpId);
@@ -771,7 +836,7 @@ function renderP2(){
     if(evMap[d])for(const t of evMap[d]){
       const ci=CCFG[t.card]||CCFG['E'],hm=hasMemo(t);
       h+=`<div class="cal-ev ev-${ci.cls}${t.card==='E'?' done-ev':''}"
-        ondblclick="openCalModal('${t.id}')">${hm?'● ':''} ${t.text}</div>`;
+        onclick="openCalModal('${t.id}')">${hm?'● ':''} ${t.text}</div>`;
     }
     h+=`</div>`;
   }
@@ -856,6 +921,18 @@ function deleteTask(){
   save();renderP1();if(curPage===2)renderP2();
 }
 
+/* ══════ Touch helpers ══════ */
+let lastTap={id:null,t:0};
+function tapExp(e,id){
+  /* double-tap on mobile = toggleExp */
+  const now=Date.now();
+  if(lastTap.id===id&&now-lastTap.t<350){
+    e.preventDefault();
+    toggleExp(id);
+  }
+  lastTap={id,t:now};
+}
+
 /* ══════ Add Task ══════ */
 function openAdd(card){
   document.getElementById('add-card').value=card||'A';
@@ -877,6 +954,7 @@ function submitAdd(){
 }
 
 /* ══════ Init ══════ */
+const isMobile=()=>window.innerWidth<=640;
 document.getElementById('hdate').textContent=
   `${TODAY.getFullYear()}년 ${TODAY.getMonth()+1}월 ${TODAY.getDate()}일 (${WD[TODAY.getDay()]})`;
 renderP1();
