@@ -265,7 +265,21 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f2f5;min-height:100vh;c
 <!-- Date Picker -->
 <div id="dp-popup">
   <div class="dp-title">마감기한 설정</div>
-  <input type="date" id="dp-input">
+  <input type="date" id="dp-input" style="width:100%;font-size:.81rem;border:1px solid #d1d5db;border-radius:7px;padding:.32rem .45rem;font-family:'Noto Sans KR',sans-serif;margin-bottom:.4rem">
+  <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.2rem">
+    <select id="dp-ampm" style="flex:1;font-size:.78rem;border:1px solid #d1d5db;border-radius:7px;padding:.3rem .35rem;font-family:'Noto Sans KR',sans-serif;background:#fff">
+      <option value="">시간없음</option>
+      <option value="오전">오전</option>
+      <option value="오후">오후</option>
+    </select>
+    <select id="dp-hour" style="flex:1;font-size:.78rem;border:1px solid #d1d5db;border-radius:7px;padding:.3rem .35rem;font-family:'Noto Sans KR',sans-serif;background:#fff">
+      <option value="">--시</option>
+      <option value="1">1시</option><option value="2">2시</option><option value="3">3시</option>
+      <option value="4">4시</option><option value="5">5시</option><option value="6">6시</option>
+      <option value="7">7시</option><option value="8">8시</option><option value="9">9시</option>
+      <option value="10">10시</option><option value="11">11시</option><option value="12">12시</option>
+    </select>
+  </div>
   <div class="dp-btns">
     <button class="dp-btn dp-ok" onclick="applyDate()">확인</button>
     <button class="dp-btn" onclick="closeDP()">취소</button>
@@ -344,6 +358,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f2f5;min-height:100vh;c
       <label>마감일</label>
       <input id="edit-due" type="date">
     </div>
+    <div class="add-row">
+      <label>시간</label>
+      <select id="edit-ampm" style="flex:1;font-size:.82rem;border:1px solid #d1d5db;border-radius:8px;padding:.4rem .45rem;font-family:'Noto Sans KR',sans-serif;background:#fff">
+        <option value="">시간없음</option><option value="오전">오전</option><option value="오후">오후</option>
+      </select>
+      <select id="edit-hour" style="flex:1;font-size:.82rem;border:1px solid #d1d5db;border-radius:8px;padding:.4rem .45rem;font-family:'Noto Sans KR',sans-serif;background:#fff">
+        <option value="">--시</option>
+        <option value="1">1시</option><option value="2">2시</option><option value="3">3시</option>
+        <option value="4">4시</option><option value="5">5시</option><option value="6">6시</option>
+        <option value="7">7시</option><option value="8">8시</option><option value="9">9시</option>
+        <option value="10">10시</option><option value="11">11시</option><option value="12">12시</option>
+      </select>
+    </div>
     <div class="settings-actions" style="margin-top:.8rem">
       <button class="s-btn primary" onclick="submitEdit()">저장</button>
       <button class="s-btn" onclick="closeEdit()">취소</button>
@@ -375,6 +402,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f2f5;min-height:100vh;c
     <div class="add-row">
       <label>마감일</label>
       <input id="add-due" type="date">
+    </div>
+    <div class="add-row">
+      <label>시간</label>
+      <select id="add-ampm" style="flex:1;font-size:.82rem;border:1px solid #d1d5db;border-radius:8px;padding:.4rem .45rem;font-family:'Noto Sans KR',sans-serif;background:#fff">
+        <option value="">시간없음</option><option value="오전">오전</option><option value="오후">오후</option>
+      </select>
+      <select id="add-hour" style="flex:1;font-size:.82rem;border:1px solid #d1d5db;border-radius:8px;padding:.4rem .45rem;font-family:'Noto Sans KR',sans-serif;background:#fff">
+        <option value="">--시</option>
+        <option value="1">1시</option><option value="2">2시</option><option value="3">3시</option>
+        <option value="4">4시</option><option value="5">5시</option><option value="6">6시</option>
+        <option value="7">7시</option><option value="8">8시</option><option value="9">9시</option>
+        <option value="10">10시</option><option value="11">11시</option><option value="12">12시</option>
+      </select>
     </div>
     <div class="settings-actions" style="margin-top:.8rem">
       <button class="s-btn primary" onclick="submitAdd()">추가하기</button>
@@ -553,6 +593,7 @@ function renderP1(){
         <button class="add-task-btn" onclick="openAdd('${ck}')" title="업무 추가">+</button>
       </div>
       <div class="task-list">`;
+    ct.sort(dueSort);
     if(!ct.length)h+=`<div class="drop-hint">${isMobile()?'수정 버튼으로 카드 이동':'드래그하여 이동'}</div>`;
     for(const t of ct){
       const exp=expandedId===t.id,urg=isUrgent(t.due),hm=hasMemo(t);
@@ -568,7 +609,7 @@ function renderP1(){
         <span class="task-text">${t.text}</span>
         <button class="edit-btn" onclick="event.stopPropagation();openEdit('${t.id}')" title="수정">수정</button>
         <span class="task-due${urg?' urgent':''}${!t.due?' nodate':''}"
-          onclick="event.stopPropagation();openDP('${t.id}',event)">${fmtDue(t.due)}</span>
+          onclick="event.stopPropagation();openDP('${t.id}',event)">${fmtDue(t.due,t)}</span>
       </div>`;
       if(exp){
         const closeHint=isMobile()?'다시 메모 점 탭으로 닫기':'더블클릭으로 닫기';
@@ -621,10 +662,7 @@ function buildDateView(){
     {key:'later',label:'이후',lc:'',items:[]},
     {key:'nodate',label:'기한 없음',lc:'',items:[]},
   ];
-  const sorted=[...tasks].sort((a,b)=>{
-    if(!a.due&&!b.due)return 0;if(!a.due)return 1;if(!b.due)return -1;
-    return new Date(a.due)-new Date(b.due);
-  });
+  const sorted=[...tasks].sort(dueSort);
   for(const t of sorted){
     if(!t.due){groups[4].items.push(t);continue;}
     const d=dayDiff(t.due);
@@ -658,10 +696,13 @@ function buildDateView(){
       }
       for(const t of byDate[dk]){
         const ci=CCFG[t.card],hm=hasMemo(t),done=t.card==='E';
+        const timeStr=fmtTime(t);
         h+=`<div class="date-task-row${done?' done-row':''}" onclick="openMemoModal('${t.id}')">
+          <input type="checkbox" class="task-checkbox" ${done?'checked':''} onclick="event.stopPropagation();toggleDone('${t.id}')">
           ${hm?`<span class="memo-dot has-memo"></span>`:`<span style="width:7px;flex-shrink:0"></span>`}
           <span class="badge badge-${ci.cls}">${ci.label}</span>
           <span class="date-task-text">${t.text}</span>
+          ${timeStr?`<span style="font-size:.67rem;color:#6b7280;white-space:nowrap">${timeStr}</span>`:''}
           ${done?`<span style="font-size:.67rem;color:#10b981;font-weight:500">완료</span>`:''}
         </div>`;
       }
@@ -674,11 +715,36 @@ function buildDateView(){
 
 /* ══════ Helpers ══════ */
 function hasMemo(t){return!!(t.memo&&t.memo.trim())}
-function fmtDue(d){if(!d)return '기한없음';const x=new Date(d);return`${x.getMonth()+1}/${x.getDate()}`}
-function fmtDueFull(d){if(!d)return '기한없음';const x=new Date(d);return`${x.getFullYear()}.${x.getMonth()+1}.${x.getDate()}(${WD[x.getDay()]})`}
+function fmtTime(t){if(!t||!t.dueAmpm||!t.dueHour)return '';return` ${t.dueAmpm} ${t.dueHour}시`}
+function fmtDue(d,t){
+  if(!d)return '기한없음';
+  const x=new Date(d);
+  const base=`${x.getMonth()+1}/${x.getDate()}`;
+  return t&&t.dueAmpm&&t.dueHour?`${base} ${t.dueAmpm} ${t.dueHour}시`:base;
+}
+function fmtDueFull(d,t){
+  if(!d)return '기한없음';
+  const x=new Date(d);
+  const base=`${x.getFullYear()}.${x.getMonth()+1}.${x.getDate()}(${WD[x.getDay()]})`;
+  return t&&t.dueAmpm&&t.dueHour?`${base} ${t.dueAmpm} ${t.dueHour}시`:base;
+}
 function isUrgent(d){if(!d)return false;return(new Date(d)-TODAY)/86400000<=2}
 function dayDiff(d){if(!d)return null;return Math.ceil((new Date(d)-TODAY)/86400000)}
 function getT(id){return tasks.find(t=>t.id===id)}
+function dueSort(a,b){
+  if(!a.due&&!b.due)return 0;if(!a.due)return 1;if(!b.due)return -1;
+  const da=new Date(a.due),db=new Date(b.due);
+  if(da-db!==0)return da-db;
+  /* same day: sort by time */
+  const toMin=(t,ap,hr)=>{
+    if(!ap||!hr)return 9999;
+    let h=parseInt(hr);
+    if(ap==='오전'&&h===12)h=0;
+    if(ap==='오후'&&h!==12)h+=12;
+    return h*60;
+  };
+  return toMin(null,a.dueAmpm,a.dueHour)-toMin(null,b.dueAmpm,b.dueHour);
+}
 
 /* ══════ Task Actions ══════ */
 function toggleDone(id){
@@ -729,7 +795,7 @@ function openMemoModal(id){
     </div>
     <div class="modal-task-title">${t.text}</div>
     <div class="modal-meta">
-      <span>마감 ${fmtDueFull(t.due)}</span>
+      <span>마감 ${fmtDueFull(t.due,t)}</span>
       <span>${t.card==='E'?'✅ 완료':'⏳ 진행 중'}</span>
     </div>
     <div class="modal-sec">상세 메모</div>
@@ -763,24 +829,31 @@ function dDrop(e,ck){
 /* ══════ Date Picker ══════ */
 function openDP(id,e){
   dpId=id;
-  document.getElementById('dp-input').value=getT(id)?.due||'';
+  const t=getT(id);
+  document.getElementById('dp-input').value=t?.due||'';
+  document.getElementById('dp-ampm').value=t?.dueAmpm||'';
+  document.getElementById('dp-hour').value=t?.dueHour||'';
   const dp=document.getElementById('dp-popup');
   dp.style.display='block';
   if(isMobile()){
-    dp.style.left='';dp.style.top='';dp.style.transform='';
-    /* CSS handles centering on mobile via media query */
+    dp.style.transform='';
   } else {
     dp.style.transform='none';
     const r=e.target.getBoundingClientRect();
     let x=r.left,y=r.bottom+5;
     if(x+215>window.innerWidth)x=window.innerWidth-220;
-    if(y+140>window.innerHeight)y=r.top-140;
+    if(y+180>window.innerHeight)y=r.top-180;
     dp.style.left=x+'px';dp.style.top=y+'px';
   }
 }
 function applyDate(){
   const v=document.getElementById('dp-input').value,t=getT(dpId);
-  if(t){t.due=v;save();renderP1();if(curPage===2)renderP2();}
+  if(t){
+    t.due=v;
+    t.dueAmpm=document.getElementById('dp-ampm').value||'';
+    t.dueHour=document.getElementById('dp-hour').value||'';
+    save();renderP1();if(curPage===2)renderP2();
+  }
   closeDP();
 }
 function clearDate(){
@@ -871,7 +944,7 @@ function openCalModal(id){
     </div>
     <div class="modal-task-title">${t.text}</div>
     <div class="modal-meta">
-      <span>마감 ${fmtDueFull(t.due)}</span>
+      <span>마감 ${fmtDueFull(t.due,t)}</span>
       <span>${t.card==='E'?'✅ 완료':'⏳ 진행 중'}</span>
     </div>
     ${sdH}
@@ -892,11 +965,10 @@ function openEdit(id){
   document.getElementById('edit-text').value=t.text;
   document.getElementById('edit-card').value=t.card;
   document.getElementById('edit-due').value=t.due||'';
+  document.getElementById('edit-ampm').value=t.dueAmpm||'';
+  document.getElementById('edit-hour').value=t.dueHour||'';
   document.getElementById('edit-overlay').classList.add('open');
-  setTimeout(()=>{
-    const el=document.getElementById('edit-text');
-    el.focus();el.select();
-  },80);
+  setTimeout(()=>{const el=document.getElementById('edit-text');el.focus();el.select();},80);
 }
 function closeEdit(){document.getElementById('edit-overlay').classList.remove('open');editId=null;}
 function submitEdit(){
@@ -906,12 +978,12 @@ function submitEdit(){
   const newCard=document.getElementById('edit-card').value;
   if(t.card!=='E'&&newCard!=='E')t.prev=newCard;
   else if(newCard==='E')t.prev=t.card;
-  t.text=text;
-  t.card=newCard;
+  t.text=text;t.card=newCard;
   t.due=document.getElementById('edit-due').value;
+  t.dueAmpm=document.getElementById('edit-ampm').value||'';
+  t.dueHour=document.getElementById('edit-hour').value||'';
   if(expandedId===editId)expandedId=null;
-  closeEdit();
-  save();renderP1();if(curPage===2)renderP2();
+  closeEdit();save();renderP1();if(curPage===2)renderP2();
 }
 function deleteTask(){
   if(!confirm('이 업무를 삭제하시겠습니까?'))return;
@@ -938,6 +1010,8 @@ function openAdd(card){
   document.getElementById('add-card').value=card||'A';
   document.getElementById('add-text').value='';
   document.getElementById('add-due').value='';
+  document.getElementById('add-ampm').value='';
+  document.getElementById('add-hour').value='';
   document.getElementById('add-overlay').classList.add('open');
   setTimeout(()=>document.getElementById('add-text').focus(),80);
 }
@@ -947,10 +1021,11 @@ function submitAdd(){
   if(!text){document.getElementById('add-text').focus();return;}
   const card=document.getElementById('add-card').value;
   const due=document.getElementById('add-due').value;
+  const dueAmpm=document.getElementById('add-ampm').value||'';
+  const dueHour=document.getElementById('add-hour').value||'';
   const id='t'+Date.now();
-  tasks.push({id,text,due,memo:'',card,prev:card});
-  closeAdd();
-  save();renderP1();if(curPage===2)renderP2();
+  tasks.push({id,text,due,dueAmpm,dueHour,memo:'',card,prev:card});
+  closeAdd();save();renderP1();if(curPage===2)renderP2();
 }
 
 /* ══════ Init ══════ */
